@@ -1,0 +1,57 @@
+server:
+  listen: ":2222"
+  host_key: ""  # leave empty to generate ephemeral key, or provide path to persistent key
+
+templates:
+  - name: basic-commands
+    commands:
+      - "echo"
+      - "date"
+      - "uptime"
+      - "whoami"
+
+  - name: file-ops
+    commands:
+      - "ls"
+      - "cat"
+      - "head"
+      - "tail"
+
+  - name: system-info
+    commands:
+      - "uname -a"
+      - "df -h"
+      - "free -h"
+      - "ps aux"
+
+  - name: docker-ops
+    commands:
+      - "docker ps"
+      - "docker images"
+      - "docker logs {{.container}}"
+      - "docker exec {{.container}}"
+
+users:
+  - username: alice
+    password: alice123
+    templates:
+      - basic-commands
+      - file-ops
+    params: {}
+
+  - username: bob
+    password: bob456
+    templates:
+      - basic-commands
+      - system-info
+    params: {}
+
+  - username: devops
+    password: devops789
+    templates:
+      - basic-commands
+      - file-ops
+      - system-info
+      - docker-ops
+    params:
+      container: "myapp"
