@@ -32,9 +32,11 @@ go.work.sum
 # .vscode/
 
 # ArgusSSH specific
-argusssh
+/argusssh
 *.log
 *.pem
 host_key
 host_key.pub
 config.yaml
+config_*_test.yaml
+/cmd/argusssh
