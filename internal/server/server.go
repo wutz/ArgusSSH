@@ -26,8 +26,9 @@ type Server struct {
 }
 
 type userAuth struct {
-	password string
-	commands []string
+	password       string
+	authorizedKeys []ssh.PublicKey
+	commands       []string
 }
 
 func New(cfg *config.Config) (*Server, error) {
@@ -38,11 +39,29 @@ func New(cfg *config.Config) (*Server, error) {
 
 	users := make(map[string]*userAuth)
 	for _, ru := range rendered {
-		users[ru.Username] = &userAuth{
-			password: ru.Password,
-			commands: ru.Commands,
+		var pubKeys []ssh.PublicKey
+		for _, keyStr := range ru.AuthorizedKeys {
+			pubKey, _, _, _, err := ssh.ParseAuthorizedKey([]byte(keyStr))
+			if err != nil {
+				log.Printf("Warning: failed to parse authorized key for user %s: %v", ru.Username, err)
+				continue
+			}
+			pubKeys = append(pubKeys, pubKey)
 		}
-		log.Printf("User %s: %d allowed command(s)", ru.Username, len(ru.Commands))
+
+		users[ru.Username] = &userAuth{
+			password:       ru.Password,
+			authorizedKeys: pubKeys,
+			commands:       ru.Commands,
+		}
+		authMethods := []string{}
+		if ru.Password != "" {
+			authMethods = append(authMethods, "password")
+		}
+		if len(pubKeys) > 0 {
+			authMethods = append(authMethods, fmt.Sprintf("pubkey(%d)", len(pubKeys)))
+		}
+		log.Printf("User %s: %d allowed command(s), auth: %v", ru.Username, len(ru.Commands), authMethods)
 	}
 
 	s := &Server{
@@ -51,7 +70,8 @@ func New(cfg *config.Config) (*Server, error) {
 	}
 
 	sshConfig := &ssh.ServerConfig{
-		PasswordCallback: s.passwordCallback,
+		PasswordCallback:  s.passwordCallback,
+		PublicKeyCallback: s.publicKeyCallback,
 	}
 
 	privateKey, err := loadOrGenerateHostKey(cfg.Server.HostKey)
@@ -71,6 +91,10 @@ func (s *Server) passwordCallback(conn ssh.ConnMetadata, password []byte) (*ssh.
 		return nil, fmt.Errorf("unknown user")
 	}
 
+	if user.password == "" {
+		return nil, fmt.Errorf("password auth not enabled for this user")
+	}
+
 	if user.password != string(password) {
 		return nil, fmt.Errorf("invalid password")
 	}
@@ -80,6 +104,29 @@ func (s *Server) passwordCallback(conn ssh.ConnMetadata, password []byte) (*ssh.
 			"user": conn.User(),
 		},
 	}, nil
+}
+
+func (s *Server) publicKeyCallback(conn ssh.ConnMetadata, key ssh.PublicKey) (*ssh.Permissions, error) {
+	user, ok := s.users[conn.User()]
+	if !ok {
+		return nil, fmt.Errorf("unknown user")
+	}
+
+	if len(user.authorizedKeys) == 0 {
+		return nil, fmt.Errorf("public key auth not enabled for this user")
+	}
+
+	for _, authorizedKey := range user.authorizedKeys {
+		if string(key.Marshal()) == string(authorizedKey.Marshal()) {
+			return &ssh.Permissions{
+				Extensions: map[string]string{
+					"user": conn.User(),
+				},
+			}, nil
+		}
+	}
+
+	return nil, fmt.Errorf("public key not authorized")
 }
 
 func (s *Server) Start() error {

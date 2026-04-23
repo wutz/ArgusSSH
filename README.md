@@ -6,7 +6,7 @@ ArgusSSH is a secure SSH server that validates commands against configurable tem
 
 - **Command Template System**: Define allowed commands as templates with parameter substitution
 - **User-based Access Control**: Each user gets specific command templates with custom parameters
-- **Password Authentication**: Simple password-based SSH authentication
+- **Dual Authentication**: Support both password and SSH public key authentication
 - **Command Validation**: Commands are validated against allowed patterns before execution
 - **Template Rendering**: Support for Go template syntax in command definitions
 
@@ -83,18 +83,33 @@ templates:
 
 ### Users Section
 
-Assign templates to users with custom parameters:
+Assign templates to users with custom parameters. Users can authenticate with password, public key, or both:
 
 ```yaml
 users:
+  # Password authentication only
   - username: alice
     password: alice123
     templates:
       - basic-commands
     params: {}
 
+  # Public key authentication only
+  - username: admin
+    password: ""  # empty password disables password auth
+    authorized_keys:
+      - "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIExampleKey admin@example.com"
+    templates:
+      - basic-commands
+      - docker-ops
+    params:
+      container: "prod-app"
+
+  # Both password and public key authentication
   - username: devops
     password: devops789
+    authorized_keys:
+      - "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIExampleKey devops@laptop"
     templates:
       - basic-commands
       - docker-ops
@@ -103,8 +118,43 @@ users:
 ```
 
 In this example:
-- `alice` can run `echo`, `date`, `uptime` with any arguments
-- `devops` can run those plus `docker logs myapp`, `docker exec myapp`, etc.
+- `alice` can run `echo`, `date`, `uptime` with any arguments (password auth)
+- `admin` can run basic commands and docker operations (public key auth only)
+- `devops` can authenticate with either password or public key
+
+## Authentication
+
+### Password Authentication
+
+Users with a non-empty `password` field can authenticate using password:
+
+```bash
+ssh -p 2222 alice@localhost
+```
+
+### Public Key Authentication
+
+Users with `authorized_keys` can authenticate using SSH keys:
+
+```bash
+# Generate a key pair if you don't have one
+ssh-keygen -t ed25519 -f ~/.ssh/argusssh_key
+
+# Add the public key to user's authorized_keys in config.yaml
+# Then connect with the private key
+ssh -p 2222 -i ~/.ssh/argusssh_key admin@localhost
+```
+
+To get your public key in the correct format:
+
+```bash
+cat ~/.ssh/argusssh_key.pub
+# Copy the output to the authorized_keys list in config.yaml
+```
+
+### Mixed Authentication
+
+Users can have both password and public key authentication enabled. They can use either method to connect.
 
 ## Command Matching
 
@@ -247,19 +297,23 @@ kubectl apply -f deployment.yaml
 
 1. **Use Strong Passwords**: The example uses simple passwords for demonstration. Use strong passwords in production.
 
-2. **Persistent Host Key**: Generate a persistent host key to avoid "host key changed" warnings:
+2. **Prefer Public Key Authentication**: Public key authentication is more secure than passwords. Use it when possible.
+
+3. **Persistent Host Key**: Generate a persistent host key to avoid "host key changed" warnings:
    ```bash
    ssh-keygen -t ed25519 -f host_key -N ""
    ```
    Then set `host_key: "host_key"` in config.
 
-3. **Principle of Least Privilege**: Only grant users the minimum commands they need.
+4. **Principle of Least Privilege**: Only grant users the minimum commands they need.
 
-4. **Command Validation**: Remember that command matching is prefix-based. Be specific in your templates.
+5. **Command Validation**: Remember that command matching is prefix-based. Be specific in your templates.
 
-5. **Network Security**: Use firewall rules to restrict SSH access to trusted networks.
+6. **Network Security**: Use firewall rules to restrict SSH access to trusted networks.
 
-6. **Audit Logging**: ArgusSSH logs all connection attempts and command executions. Monitor these logs.
+7. **Audit Logging**: ArgusSSH logs all connection attempts and command executions. Monitor these logs.
+
+8. **Key Management**: Store authorized public keys securely. Rotate keys regularly.
 
 ## Testing
 

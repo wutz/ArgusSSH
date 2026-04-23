@@ -16,10 +16,11 @@ type CommandTemplate struct {
 }
 
 type User struct {
-	Username  string   `yaml:"username"`
-	Password  string   `yaml:"password"`
-	Templates []string `yaml:"templates"`
-	Params    map[string]string `yaml:"params"`
+	Username       string            `yaml:"username"`
+	Password       string            `yaml:"password"`
+	AuthorizedKeys []string          `yaml:"authorized_keys"`
+	Templates      []string          `yaml:"templates"`
+	Params         map[string]string `yaml:"params"`
 }
 
 type ServerConfig struct {
@@ -34,9 +35,10 @@ type Config struct {
 }
 
 type RenderedUser struct {
-	Username string
-	Password string
-	Commands []string
+	Username       string
+	Password       string
+	AuthorizedKeys []string
+	Commands       []string
 }
 
 func Load(path string) (*Config, error) {
@@ -78,8 +80,11 @@ func (c *Config) validate() error {
 
 	usernames := make(map[string]bool)
 	for _, u := range c.Users {
-		if u.Username == "" || u.Password == "" {
-			return fmt.Errorf("username and password are required")
+		if u.Username == "" {
+			return fmt.Errorf("username is required")
+		}
+		if u.Password == "" && len(u.AuthorizedKeys) == 0 {
+			return fmt.Errorf("user %q must have either password or authorized_keys", u.Username)
 		}
 		if usernames[u.Username] {
 			return fmt.Errorf("duplicate username: %s", u.Username)
@@ -104,8 +109,9 @@ func (c *Config) RenderUsers() ([]RenderedUser, error) {
 	var rendered []RenderedUser
 	for _, u := range c.Users {
 		ru := RenderedUser{
-			Username: u.Username,
-			Password: u.Password,
+			Username:       u.Username,
+			Password:       u.Password,
+			AuthorizedKeys: u.AuthorizedKeys,
 		}
 
 		for _, tname := range u.Templates {

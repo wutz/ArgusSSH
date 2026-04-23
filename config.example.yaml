@@ -55,3 +55,26 @@ users:
       - docker-ops
     params:
       container: "myapp"
+
+  # Example: user with public key authentication only
+  - username: admin
+    password: ""  # empty password means password auth disabled
+    authorized_keys:
+      - "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIExamplePublicKeyHere admin@example.com"
+      - "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQExampleRSAKeyHere admin@laptop"
+    templates:
+      - basic-commands
+      - file-ops
+      - system-info
+      - docker-ops
+    params:
+      container: "prod-app"
+
+  # Example: user with both password and public key authentication
+  - username: charlie
+    password: charlie123
+    authorized_keys:
+      - "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIExampleKeyForCharlie charlie@work"
+    templates:
+      - basic-commands
+    params: {}
