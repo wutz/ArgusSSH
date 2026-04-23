@@ -127,7 +127,9 @@ In this example:
 ArgusSSH is designed for scenarios where you need controlled command execution:
 
 - **Container Management**: Allow developers to view logs and exec into specific containers
-- **Storage Administration**: Controlled GPFS/NFS operations (see [GPFS Fileset Management Example](examples/gpfs-fileset-management.md))
+- **Storage Administration**: 
+  - Controlled GPFS/NFS operations (see [GPFS Fileset Management Example](examples/gpfs-fileset-management.md))
+  - Quota management (see [GPFS Quota Management Example](examples/gpfs-quota-management.md))
 - **CI/CD Pipelines**: Restricted deployment commands for automation
 - **Monitoring**: Read-only access to system metrics and logs
 - **Multi-tenant Environments**: Different command sets per tenant/team

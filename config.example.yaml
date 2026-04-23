@@ -53,6 +53,31 @@ templates:
       - "mmdf {{.filesystem}}"
       - "mmlsfs {{.filesystem}}"
 
+  - name: gpfs-quota-readonly
+    commands:
+      - "mmlsquota {{.filesystem}}"
+      - "mmlsquota -j {{.fileset}} {{.filesystem}}"
+      - "mmlsquota -u {{.user}} {{.filesystem}}"
+      - "mmlsquota -g {{.group}} {{.filesystem}}"
+      - "mmrepquota {{.filesystem}}"
+      - "mmrepquota -j {{.fileset}} {{.filesystem}}"
+
+  - name: gpfs-quota-admin
+    commands:
+      - "mmlsquota {{.filesystem}}"
+      - "mmlsquota -j {{.fileset}} {{.filesystem}}"
+      - "mmlsquota -u {{.user}} {{.filesystem}}"
+      - "mmlsquota -g {{.group}} {{.filesystem}}"
+      - "mmrepquota {{.filesystem}}"
+      - "mmrepquota -j {{.fileset}} {{.filesystem}}"
+      - "mmsetquota {{.filesystem}}:{{.fileset}}"
+      - "mmsetquota -u {{.user}} {{.filesystem}}"
+      - "mmsetquota -g {{.group}} {{.filesystem}}"
+      - "mmedquota -u {{.user}} {{.filesystem}}"
+      - "mmedquota -g {{.group}} {{.filesystem}}"
+      - "mmcheckquota {{.filesystem}}"
+      - "mmcheckquota -j {{.fileset}} {{.filesystem}}"
+
 users:
   - username: alice
     password: alice123
@@ -122,3 +147,29 @@ users:
     params:
       filesystem: "gpfs01"
       fileset: "project01"
+
+  # Example: GPFS quota read-only user
+  - username: quota-viewer
+    password: quota123
+    templates:
+      - basic-commands
+      - gpfs-quota-readonly
+    params:
+      filesystem: "gpfs01"
+      fileset: "project01"
+      user: "john"
+      group: "research"
+
+  # Example: GPFS quota administrator
+  - username: quota-admin
+    password: ""
+    authorized_keys:
+      - "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIExampleQuotaAdminKey quota-admin@storage"
+    templates:
+      - basic-commands
+      - gpfs-quota-admin
+    params:
+      filesystem: "gpfs01"
+      fileset: "project01"
+      user: "john"
+      group: "research"
