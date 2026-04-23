@@ -5,7 +5,6 @@ import (
 	"crypto/rand"
 	"encoding/pem"
 	"fmt"
-	"io"
 	"log"
 	"net"
 	"os"
@@ -204,6 +203,7 @@ func (s *Server) handleSession(channel ssh.Channel, requests <-chan *ssh.Request
 			if s.isCommandAllowed(username, cmdLine) {
 				req.Reply(true, nil)
 				s.executeCommand(channel, cmdLine)
+				channel.CloseWrite()
 			} else {
 				log.Printf("User %s denied: %s", username, cmdLine)
 				req.Reply(false, nil)
@@ -275,7 +275,6 @@ func (s *Server) executeCommand(channel ssh.Channel, cmdLine string) {
 	cmd := exec.Command("sh", "-c", cmdLine)
 	cmd.Stdout = channel
 	cmd.Stderr = channel.Stderr()
-	cmd.Stdin = channel
 
 	if err := cmd.Run(); err != nil {
 		if exitErr, ok := err.(*exec.ExitError); ok {
@@ -323,7 +322,6 @@ func generateHostKey() (ssh.Signer, error) {
 		return nil, fmt.Errorf("parsing generated key: %w", err)
 	}
 
-	_ = io.Discard
 	log.Printf("Generated ephemeral host key (provide host_key in config for persistent key)")
 	return signer, nil
 }
