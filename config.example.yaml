@@ -31,6 +31,28 @@ templates:
       - "docker logs {{.container}}"
       - "docker exec {{.container}}"
 
+  - name: gpfs-fileset-readonly
+    commands:
+      - "mmlsfileset {{.filesystem}}"
+      - "mmlsfileset {{.filesystem}} {{.fileset}}"
+      - "mmlsquota -j {{.fileset}} {{.filesystem}}"
+      - "mmdf {{.filesystem}}"
+      - "mmlsfs {{.filesystem}}"
+
+  - name: gpfs-fileset-admin
+    commands:
+      - "mmlsfileset {{.filesystem}}"
+      - "mmlsfileset {{.filesystem}} {{.fileset}}"
+      - "mmcrfileset {{.filesystem}} {{.fileset}}"
+      - "mmlinkfileset {{.filesystem}} {{.fileset}}"
+      - "mmunlinkfileset {{.filesystem}} {{.fileset}}"
+      - "mmdelfileset {{.filesystem}} {{.fileset}}"
+      - "mmchfileset {{.filesystem}} {{.fileset}}"
+      - "mmlsquota -j {{.fileset}} {{.filesystem}}"
+      - "mmsetquota {{.filesystem}}:{{.fileset}}"
+      - "mmdf {{.filesystem}}"
+      - "mmlsfs {{.filesystem}}"
+
 users:
   - username: alice
     password: alice123
@@ -78,3 +100,25 @@ users:
     templates:
       - basic-commands
     params: {}
+
+  # Example: GPFS fileset read-only user
+  - username: gpfs-viewer
+    password: viewer123
+    templates:
+      - basic-commands
+      - gpfs-fileset-readonly
+    params:
+      filesystem: "gpfs01"
+      fileset: "project01"
+
+  # Example: GPFS fileset administrator
+  - username: gpfs-admin
+    password: ""
+    authorized_keys:
+      - "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIExampleGPFSAdminKey gpfs-admin@storage"
+    templates:
+      - basic-commands
+      - gpfs-fileset-admin
+    params:
+      filesystem: "gpfs01"
+      fileset: "project01"

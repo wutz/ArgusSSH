@@ -122,6 +122,16 @@ In this example:
 - `admin` can run basic commands and docker operations (public key auth only)
 - `devops` can authenticate with either password or public key
 
+## Use Cases
+
+ArgusSSH is designed for scenarios where you need controlled command execution:
+
+- **Container Management**: Allow developers to view logs and exec into specific containers
+- **Storage Administration**: Controlled GPFS/NFS operations (see [GPFS Fileset Management Example](examples/gpfs-fileset-management.md))
+- **CI/CD Pipelines**: Restricted deployment commands for automation
+- **Monitoring**: Read-only access to system metrics and logs
+- **Multi-tenant Environments**: Different command sets per tenant/team
+
 ## Authentication
 
 ### Password Authentication
